@@ -1,5 +1,5 @@
-const express = require('express');
-const path = require("path");
+import express, { response } from "express";
+import path from "path";
 const fs = require("fs/promises");
 const myfilePath = path.resolve(__dirname, "./../productos.txt");
 
