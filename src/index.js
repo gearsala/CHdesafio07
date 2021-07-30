@@ -1,6 +1,6 @@
-import express, { response } from "express";
-import path from "path";
-const fs = require("fs/promises");
+const express = require("express");
+const path = require("path");
+const fs = require("fs").promises;
 const myfilePath = path.resolve(__dirname, "./../productos.txt");
 
 const puerto = 8080;
@@ -15,45 +15,61 @@ const fn = () => {
   return data;
 };
 
-const server = app.listen(puerto, () =>
-  console.log("Servidor activo en puerto", puerto)
+app.listen(puerto, () =>
+  console.log(`Servidor corriendo en puerto ${puerto}`)
 );
 
-server.on("error", (err) => {
-  console.log("ERROR =>", err);
+app.on("error", (error) => {
+  console.log(`Error de servidor: ${error}`);
 });
 
-let totalVisits = 0;
-let visit1 = 0;
-let visit2 = 0;
 
 app.get("/", (req, res) => {
-  totalVisits++;
   res.send(`Puede utilizar las rutas '/items' '/item-random' '/visitas'`);
 });
 
-app.get("/items", async (request, response) => {
-  totalVisits++;
-  visit1++;
-  const productos = await fn();
-  const productosArray = JSON.parse(productos, null, 2);
-  const productosLength = productosArray.length;
-  response.json({ productos: productosArray, cantidad: productosLength });
+let getItemCounter = 0;
+
+app.get("/items", async (req, res) => {
+  getItemCounter++;
+  try{
+    const fileStats = await fs.stat(`./productos.txt`)
+    if (fileStats.size === 0){
+      res.send("Archivo vacío")
+    } else {
+      const dataFile = await fs.readFile("./productos.txt", "utf8")
+      const dataObj = JSON.parse(dataFile)
+      const dataArray = Object.values(dataObj)
+      const items = { items: dataObj, cantidad: dataArray.length }
+      res.send(items)
+    }
+  } catch (error){
+      throw new Error(error)
+  }
 });
 
-app.get("/item-random", async (request, response) => {
-  totalVisits++;
-  visit2++;
-  const productos = await fn();
-  const productosArray = JSON.parse(productos, null, 2);
-  const productosLength = productosArray.length;
-  const random = getRandom(0, productosLength);
-  response.json({ productoRand: productosArray[random] });
+let getItemRandomCounter = 0;
+
+app.get("/item-random", async (req, res) => {
+  getItemRandomCounter++;
+  try{
+    const fileStats = await fs.stat(`./productos.txt`)
+    if (fileStats.size === 0) {
+      res.send("Archivo vacío")
+    } else {
+        const dataFile = await fs.readFile("./productos.txt", "utf8");
+        const dataObj = JSON.parse(dataFile)
+        const dataArray = Object.values(dataObj)
+        const productsRandom = Math.floor(Math.random() * (dataArray.length - 0) + 0);
+        const items = { item: dataArray[productsRandom]}
+        res.send(items)
+    }
+  } catch (error) {
+      throw new Error(error)
+  }
 });
 
 
-app.get("/visitas", (request, response) => {
-  totalVisits++;
-  const visits = `Visitas totales: ${totalVisits}, Visitas a /items: ${visit1}, Visitas a /item-random: ${visit2} `;
-  response.json({ visits });
-});
+app.get("/visitas", (req, res) => {
+  res.send({visitas: {Items:getItemCounter, Items_Random:getItemRandomCounter}})
+})
